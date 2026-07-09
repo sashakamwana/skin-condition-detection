@@ -12,7 +12,7 @@ st.warning(
 )
 
 MODEL_URL = "https://github.com/sashakamwana/skin-condition-detection/releases/download/v1.0/export.2.pkl"
-MODEL_PATH = Path("export.2.pkl")
+MODEL_PATH = Path("export.pkl")
 
 def download_model():
     if MODEL_PATH.exists():
