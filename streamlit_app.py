@@ -40,21 +40,35 @@ uploaded_file = st.file_uploader(
     type=["jpg", "jpeg", "png", "webp"]
 )
 
-if uploaded_file is not None:
+uploaded_file = st.file_uploader(
+    "Choose an image",
+    type=["jpg", "jpeg", "png", "webp"]
+)
+
+if uploaded_file is None:
+    st.info("Please upload an image to get a prediction.")
+
+else:
+    st.success("Image uploaded successfully.")
+
     try:
         img = Image.open(uploaded_file).convert("RGB")
+        st.write("Image opened successfully.")
 
-        st.write("Running prediction...")
+        # Keep this removed for now because it was causing frontend issues
+        # st.image(img, caption="Uploaded image", use_container_width=True)
 
-        pred, pred_idx, probs = learn.predict(img)
+        if st.button("Predict"):
+            with st.spinner("Running prediction..."):
+                pred, pred_idx, probs = learn.predict(img)
 
-        st.subheader("Prediction")
-        st.write(f"**{pred}**")
+            st.subheader("Prediction")
+            st.write(f"**{pred}**")
 
-        st.subheader("Probabilities")
-        for i, label in enumerate(labels):
-            st.write(f"{label}: {float(probs[i]):.4f}")
+            st.subheader("Probabilities")
+            for i, label in enumerate(labels):
+                st.write(f"{label}: {float(probs[i]):.4f}")
 
     except Exception as e:
-        st.error("Prediction failed.")
+        st.error("Something went wrong.")
         st.exception(e)
