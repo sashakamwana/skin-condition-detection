@@ -41,14 +41,21 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
-    img = Image.open(uploaded_file).convert("RGB")
-    st.image(img, caption="Uploaded image", use_container_width=True)
+    try:
+        img = Image.open(uploaded_file).convert("RGB")
+        st.image(img, caption="Uploaded image", use_container_width=True)
 
-    pred, pred_idx, probs = learn.predict(img)
+        st.write("Running prediction...")
 
-    st.subheader("Prediction")
-    st.write(f"**{pred}**")
+        pred, pred_idx, probs = learn.predict(img)
 
-    st.subheader("Probabilities")
-    for i, label in enumerate(labels):
-        st.write(f"{label}: {float(probs[i]):.4f}")
+        st.subheader("Prediction")
+        st.write(f"**{pred}**")
+
+        st.subheader("Probabilities")
+        for i, label in enumerate(labels):
+            st.write(f"{label}: {float(probs[i]):.4f}")
+
+    except Exception as e:
+        st.error("Prediction failed.")
+        st.exception(e)
