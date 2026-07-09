@@ -1,13 +1,36 @@
 import streamlit as st
 from fastai.vision.all import *
 from PIL import Image
+from pathlib import Path
+import requests
 
 st.title("Skin Condition Detection")
 st.write("Upload a skin image and the model will predict the most likely class.")
 
+st.warning(
+    "This app is for learning/demo purposes only and is not a medical diagnosis tool."
+)
+
+MODEL_URL = "PASTE_YOUR_EXPORT_PKL_RELEASE_LINK_HERE"
+MODEL_PATH = Path("export.pkl")
+
+def download_model():
+    if MODEL_PATH.exists():
+        return
+
+    with st.spinner("Downloading model..."):
+        response = requests.get(MODEL_URL, stream=True)
+        response.raise_for_status()
+
+        with open(MODEL_PATH, "wb") as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
 @st.cache_resource
 def load_model():
-    return load_learner("export.pkl")
+    download_model()
+    return load_learner(MODEL_PATH)
 
 learn = load_model()
 labels = learn.dls.vocab
