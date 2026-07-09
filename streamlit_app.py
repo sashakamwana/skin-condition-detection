@@ -11,7 +11,7 @@ st.warning(
     "This app is for learning/demo purposes only and is not a medical diagnosis tool."
 )
 
-MODEL_URL = "PASTE_YOUR_EXPORT_PKL_RELEASE_LINK_HERE"
+MODEL_URL = "https://github.com/sashakamwana/skin-condition-detection/releases/download/v1.0/export.2.pkl"
 MODEL_PATH = Path("export.pkl")
 
 def download_model():
