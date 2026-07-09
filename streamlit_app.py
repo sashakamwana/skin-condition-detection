@@ -43,7 +43,6 @@ uploaded_file = st.file_uploader(
 if uploaded_file is not None:
     try:
         img = Image.open(uploaded_file).convert("RGB")
-        st.image(img, caption="Uploaded image", use_container_width=True)
 
         st.write("Running prediction...")
 
