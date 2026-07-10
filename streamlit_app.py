@@ -80,7 +80,9 @@ else:
 
         if st.button("Predict", key="predict_button"):
             with st.spinner("Running prediction..."):
-                pred, pred_idx, probs = learn.predict(img)
+                fastai_img = PILImage.create(img)
+                pred, pred_idx, probs = learn.predict(fastai_img)
+                
 
             st.subheader("Prediction")
             st.write(f"**{pred}**")
