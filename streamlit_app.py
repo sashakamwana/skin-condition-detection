@@ -1,8 +1,13 @@
+import os
 import requests
 import streamlit as st
+import torch
 from fastai.vision.all import *
 from PIL import Image
 from pathlib import Path
+
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+torch.set_num_threads(1)
 
 
 st.set_page_config(
@@ -42,11 +47,9 @@ def download_model():
 
 @st.cache_resource
 def load_model():
-    """Load the exported fastai model."""
+    """Load the exported fastai model on CPU."""
     download_model()
-    return load_learner(MODEL_PATH)
-
-
+    return load_learner(MODEL_PATH, cpu=True)
 try:
     learn = load_model()
     labels = learn.dls.vocab
