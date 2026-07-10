@@ -1,8 +1,15 @@
+import requests
 import streamlit as st
 from fastai.vision.all import *
 from PIL import Image
 from pathlib import Path
-import requests
+
+
+st.set_page_config(
+    page_title="Skin Condition Detection",
+    page_icon="🩺",
+    layout="centered"
+)
 
 st.title("Skin Condition Detection")
 st.write("Upload a skin image and the model will predict the most likely class.")
@@ -11,14 +18,19 @@ st.warning(
     "This app is for learning/demo purposes only and is not a medical diagnosis tool."
 )
 
+
+# This is the GitHub Release download link for your model file.
+# Your release file is called export.2.pkl, but we save it locally as export.pkl.
 MODEL_URL = "https://github.com/sashakamwana/skin-condition-detection/releases/download/v1.0/export.2.pkl"
 MODEL_PATH = Path("export.pkl")
 
+
 def download_model():
+    """Download the model from GitHub Releases if it is not already downloaded."""
     if MODEL_PATH.exists():
         return
 
-    with st.spinner("Downloading model..."):
+    with st.spinner("Downloading model... please wait."):
         response = requests.get(MODEL_URL, stream=True)
         response.raise_for_status()
 
@@ -27,23 +39,30 @@ def download_model():
                 if chunk:
                     f.write(chunk)
 
+
 @st.cache_resource
 def load_model():
+    """Load the exported fastai model."""
     download_model()
     return load_learner(MODEL_PATH)
 
-learn = load_model()
-labels = learn.dls.vocab
+
+try:
+    learn = load_model()
+    labels = learn.dls.vocab
+    st.success("Model loaded successfully.")
+except Exception as e:
+    st.error("Model failed to load.")
+    st.exception(e)
+    st.stop()
+
 
 uploaded_file = st.file_uploader(
     "Choose an image",
-    type=["jpg", "jpeg", "png", "webp"]
+    type=["jpg", "jpeg", "png", "webp"],
+    key="skin_image_uploader"
 )
 
-uploaded_file = st.file_uploader(
-    "Choose an image",
-    type=["jpg", "jpeg", "png", "webp"]
-)
 
 if uploaded_file is None:
     st.info("Please upload an image to get a prediction.")
@@ -55,10 +74,11 @@ else:
         img = Image.open(uploaded_file).convert("RGB")
         st.write("Image opened successfully.")
 
-        # Keep this removed for now because it was causing frontend issues
-        # st.image(img, caption="Uploaded image", use_container_width=True)
+        # This displays the uploaded image.
+        # If this causes frontend issues again, comment out this line.
+        st.image(img, caption="Uploaded image", use_container_width=True)
 
-        if st.button("Predict"):
+        if st.button("Predict", key="predict_button"):
             with st.spinner("Running prediction..."):
                 pred, pred_idx, probs = learn.predict(img)
 
@@ -70,5 +90,5 @@ else:
                 st.write(f"{label}: {float(probs[i]):.4f}")
 
     except Exception as e:
-        st.error("Something went wrong.")
+        st.error("Prediction failed.")
         st.exception(e)
