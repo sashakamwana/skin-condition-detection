@@ -25,9 +25,9 @@ st.warning(
 
 
 # This is the GitHub Release download link for your model file.
-# Your release file is called export.2.pkl, but we save it locally as export.pkl.
-MODEL_URL = "https://github.com/sashakamwana/skin-condition-detection/releases/download/v1.0/export.2.pkl"
-MODEL_PATH = Path("export.pkl")
+# Your release file is called export.2.pkl, but we save it locally as model.pth.
+MODEL_URL = "https://github.com/sashakamwana/skin-condition-detection/releases/download/v1.0/model.pth"
+MODEL_PATH = Path("model.pth")
 
 
 def download_model():
