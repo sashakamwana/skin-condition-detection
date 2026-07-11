@@ -12,6 +12,7 @@ from torchvision import models, transforms
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 torch.set_num_threads(1)
 
+
 st.set_page_config(
     page_title="Skin Condition Detection",
     page_icon="🩺",
@@ -29,6 +30,16 @@ st.warning(
 MODEL_URL = "https://github.com/sashakamwana/skin-condition-detection/releases/download/v1.0/model.pth"
 MODEL_PATH = Path("model.pth")
 CLASSES_PATH = Path("classes.txt")
+
+
+class AdaptiveConcatPool2d(nn.Module):
+    def __init__(self, size=1):
+        super().__init__()
+        self.ap = nn.AdaptiveAvgPool2d(size)
+        self.mp = nn.AdaptiveMaxPool2d(size)
+
+    def forward(self, x):
+        return torch.cat([self.mp(x), self.ap(x)], dim=1)
 
 
 def download_model():
@@ -50,6 +61,26 @@ def load_classes():
         return [line.strip() for line in f.readlines() if line.strip()]
 
 
+def build_fastai_resnet18(num_classes):
+    resnet = models.resnet18(weights=None)
+
+    body = nn.Sequential(*list(resnet.children())[:-2])
+
+    head = nn.Sequential(
+        AdaptiveConcatPool2d(1),
+        nn.Flatten(),
+        nn.BatchNorm1d(1024),
+        nn.Dropout(p=0.25),
+        nn.Linear(1024, 512, bias=False),
+        nn.ReLU(inplace=True),
+        nn.BatchNorm1d(512),
+        nn.Dropout(p=0.5),
+        nn.Linear(512, num_classes, bias=False),
+    )
+
+    return nn.Sequential(body, head)
+
+
 @st.cache_resource
 def load_model():
     download_model()
@@ -57,8 +88,7 @@ def load_model():
     classes = load_classes()
     num_classes = len(classes)
 
-    model = models.resnet18(weights=None)
-    model.fc = nn.Linear(model.fc.in_features, num_classes)
+    model = build_fastai_resnet18(num_classes)
 
     state_dict = torch.load(MODEL_PATH, map_location="cpu")
     model.load_state_dict(state_dict)
@@ -124,4 +154,3 @@ else:
     except Exception as e:
         st.error("Prediction failed.")
         st.exception(e)
-  
