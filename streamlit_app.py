@@ -1,14 +1,16 @@
 import os
+from pathlib import Path
+
 import requests
 import streamlit as st
 import torch
-from fastai.vision.all import *
+import torch.nn as nn
 from PIL import Image
-from pathlib import Path
+from torchvision import models, transforms
+
 
 os.environ["CUDA_VISIBLE_DEVICES"] = ""
 torch.set_num_threads(1)
-
 
 st.set_page_config(
     page_title="Skin Condition Detection",
@@ -24,14 +26,12 @@ st.warning(
 )
 
 
-# This is the GitHub Release download link for your model file.
-# Your release file is called export.2.pkl, but we save it locally as model.pth.
 MODEL_URL = "https://github.com/sashakamwana/skin-condition-detection/releases/download/v1.0/model.pth"
 MODEL_PATH = Path("model.pth")
+CLASSES_PATH = Path("classes.txt")
 
 
 def download_model():
-    """Download the model from GitHub Releases if it is not already downloaded."""
     if MODEL_PATH.exists():
         return
 
@@ -45,19 +45,45 @@ def download_model():
                     f.write(chunk)
 
 
+def load_classes():
+    with open(CLASSES_PATH, "r") as f:
+        return [line.strip() for line in f.readlines() if line.strip()]
+
+
 @st.cache_resource
 def load_model():
-    """Load the exported fastai model on CPU."""
     download_model()
-    return load_learner(MODEL_PATH, cpu=True)
+
+    classes = load_classes()
+    num_classes = len(classes)
+
+    model = models.resnet18(weights=None)
+    model.fc = nn.Linear(model.fc.in_features, num_classes)
+
+    state_dict = torch.load(MODEL_PATH, map_location="cpu")
+    model.load_state_dict(state_dict)
+
+    model.eval()
+    return model, classes
+
+
 try:
-    learn = load_model()
-    labels = learn.dls.vocab
+    model, classes = load_model()
     st.success("Model loaded successfully.")
 except Exception as e:
     st.error("Model failed to load.")
     st.exception(e)
     st.stop()
+
+
+image_tfms = transforms.Compose([
+    transforms.Resize((192, 192)),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+])
 
 
 uploaded_file = st.file_uploader(
@@ -75,25 +101,27 @@ else:
 
     try:
         img = Image.open(uploaded_file).convert("RGB")
-        st.write("Image opened successfully.")
-
-        # This displays the uploaded image.
-        # If this causes frontend issues again, comment out this line.
         st.image(img, caption="Uploaded image", use_container_width=True)
 
         if st.button("Predict", key="predict_button"):
             with st.spinner("Running prediction..."):
-                fastai_img = PILImage.create(img)
-                pred, pred_idx, probs = learn.predict(fastai_img)
-                
+                x = image_tfms(img).unsqueeze(0)
+
+                with torch.no_grad():
+                    outputs = model(x)
+                    probs = torch.softmax(outputs, dim=1)[0]
+
+                pred_idx = int(torch.argmax(probs))
+                pred_label = classes[pred_idx]
 
             st.subheader("Prediction")
-            st.write(f"**{pred}**")
+            st.write(f"**{pred_label}**")
 
             st.subheader("Probabilities")
-            for i, label in enumerate(labels):
+            for i, label in enumerate(classes):
                 st.write(f"{label}: {float(probs[i]):.4f}")
 
     except Exception as e:
         st.error("Prediction failed.")
         st.exception(e)
+  
